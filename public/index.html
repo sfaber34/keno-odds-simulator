@@ -508,6 +508,36 @@
       color: var(--text-primary);
     }
 
+    .target-edge-input {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.6rem 0.75rem;
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      width: 70px;
+      text-align: right;
+      transition: all 0.2s ease;
+    }
+
+    .target-edge-input:hover {
+      border-color: var(--accent-blue);
+      background: var(--bg-hover);
+    }
+
+    .target-edge-input:focus {
+      outline: none;
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
+
+    .edge-suffix {
+      color: var(--text-secondary);
+      font-family: 'JetBrains Mono', monospace;
+      margin-left: -0.25rem;
+    }
+
     .loading-overlay {
       position: fixed;
       top: 0;
@@ -590,6 +620,9 @@
         <select id="payout-file" class="payout-select">
           <option value="">Loading...</option>
         </select>
+        <label for="target-edge">Target Edge:</label>
+        <input type="number" id="target-edge" class="target-edge-input" value="5" min="0" max="50">
+        <span class="edge-suffix">%</span>
       </div>
     </header>
 
@@ -750,8 +783,8 @@
 
       let rowsHtml = '';
 
-      // Calculate suggested payouts for 5% house edge
-      const targetEV = 0.95; // 5% house edge means 95% return
+      // Calculate suggested payouts for target house edge
+      const targetEV = getTargetEV();
       const scaleFactor = data.totalEV > 0 ? targetEV / data.totalEV : 1;
 
       for (const row of data.rows) {
@@ -823,7 +856,7 @@
                 <th title="Chance of this outcome occurring (hypergeometric distribution)">Probability</th>
                 <th title="Same as probability, expressed as '1 in X'">Odds</th>
                 <th title="Current payout multiplier from your CSV file">CSV Payout</th>
-                <th title="Suggested payout for 5% house edge. Scaled proportionally and rounded DOWN to 1 decimal to keep house edge.">Target Payout (5%)</th>
+                <th title="Suggested payout for target house edge. Scaled proportionally and rounded DOWN to 1 decimal to keep house edge.">Target Payout (${targetEdgeInput.value}%)</th>
                 <th title="% Return = (probability × CSV payout) / total EV × 100. Shows what portion of player returns comes from this outcome using your current CSV payouts.">% Return</th>
               </tr>
             </thead>
@@ -843,6 +876,14 @@
     const pickDetails = document.getElementById('pick-details');
     const payoutSelect = document.getElementById('payout-file');
     const loadingOverlay = document.getElementById('loading-overlay');
+    const targetEdgeInput = document.getElementById('target-edge');
+
+    let currentActivePick = 1; // Track the currently active pick
+
+    function getTargetEV() {
+      const edgePercent = parseFloat(targetEdgeInput.value) || 5;
+      return (100 - edgePercent) / 100; // e.g., 5% edge = 0.95 target EV
+    }
 
     function renderAll() {
       const allData = [];
@@ -854,13 +895,13 @@
       summaryGrid.innerHTML = allData.map(renderSummaryCard).join('');
 
       // Render nav tabs
-      navTabs.innerHTML = allData.map((data, i) =>
-        `<button class="nav-tab ${i === 0 ? 'active' : ''}" data-picks="${data.picks}">Pick ${data.picks}</button>`
+      navTabs.innerHTML = allData.map((data) =>
+        `<button class="nav-tab ${data.picks === currentActivePick ? 'active' : ''}" data-picks="${data.picks}">Pick ${data.picks}</button>`
       ).join('');
 
       // Render detailed sections
-      pickDetails.innerHTML = allData.map((data, i) =>
-        `<div class="${i === 0 ? '' : 'hidden'}" data-detail="${data.picks}">${renderDetailedSection(data)}</div>`
+      pickDetails.innerHTML = allData.map((data) =>
+        `<div class="${data.picks === currentActivePick ? '' : 'hidden'}" data-detail="${data.picks}">${renderDetailedSection(data)}</div>`
       ).join('');
     }
 
@@ -907,6 +948,11 @@
       }
     });
 
+    // Handle target edge change
+    targetEdgeInput.addEventListener('input', () => {
+      renderAll();
+    });
+
     // ============================================================
     // EVENT HANDLERS
     // ============================================================
@@ -929,6 +975,7 @@
         e.target.classList.add('active');
 
         const picks = e.target.dataset.picks;
+        currentActivePick = parseInt(picks, 10);
         document.querySelectorAll('[data-detail]').forEach(d => {
           d.classList.toggle('hidden', d.dataset.detail !== picks);
         });
@@ -940,6 +987,7 @@
       const card = e.target.closest('.summary-card');
       if (card) {
         const picks = card.dataset.picks;
+        currentActivePick = parseInt(picks, 10);
 
         // Switch to detailed view
         document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
