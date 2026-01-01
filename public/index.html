@@ -149,20 +149,20 @@
       width: 6px;
     }
 
-    .summary-card.positive::before {
-      background: var(--accent-red);
-    }
-
-    .summary-card.negative::before {
+    .summary-card.house-wins::before {
       background: var(--accent-green);
     }
 
-    .summary-card.positive:hover {
-      border-color: var(--accent-red);
+    .summary-card.house-loses::before {
+      background: var(--accent-red);
     }
 
-    .summary-card.negative:hover {
+    .summary-card.house-wins:hover {
       border-color: var(--accent-green);
+    }
+
+    .summary-card.house-loses:hover {
+      border-color: var(--accent-red);
     }
 
     .card-header {
@@ -200,12 +200,20 @@
       font-weight: 600;
     }
 
-    .stat-value.positive {
+    .stat-value.house-wins {
+      color: var(--accent-green);
+    }
+
+    .stat-value.house-loses {
       color: var(--accent-red);
     }
 
-    .stat-value.negative {
+    .house-wins {
       color: var(--accent-green);
+    }
+
+    .house-loses {
+      color: var(--accent-red);
     }
 
     .stat-label {
@@ -319,24 +327,30 @@
       color: var(--text-muted);
     }
 
-    .odds-table .ev-col.positive {
-      color: var(--accent-green);
+    .odds-table .pct-return-col {
+      color: var(--text-secondary);
     }
 
-    .odds-table .ev-col.negative {
-      color: var(--text-muted);
-    }
-
-    .odds-table .edge-col {
+    .odds-table .suggested-col {
+      color: var(--accent-blue);
       font-weight: 600;
     }
 
-    .odds-table .edge-col.positive {
-      color: var(--accent-green);
+    .odds-table th[title] {
+      cursor: help;
+      text-decoration: underline dotted var(--text-muted);
+      text-underline-offset: 3px;
     }
 
-    .odds-table .edge-col.negative {
-      color: var(--accent-red);
+    .stat[title],
+    .pick-summary-item[title] {
+      cursor: help;
+    }
+
+    .stat[title] .stat-label,
+    .pick-summary-item[title] .pick-summary-label {
+      text-decoration: underline dotted var(--text-muted);
+      text-underline-offset: 2px;
     }
 
     /* Progress Bars */
@@ -705,7 +719,7 @@
     // RENDERING
     // ============================================================
     function renderSummaryCard(data) {
-      const edgeClass = data.houseEdge < 0 ? 'positive' : 'negative';
+      const edgeClass = data.houseEdge >= 0 ? 'house-wins' : 'house-loses';
       return `
         <div class="summary-card ${edgeClass}" data-picks="${data.picks}">
           <div class="card-header">
@@ -713,15 +727,15 @@
             <span class="max-payout">${data.maxPayout}x max</span>
           </div>
           <div class="card-stats">
-            <div class="stat">
+            <div class="stat" title="Percentage the house keeps (positive) or loses (negative) per bet on average">
               <div class="stat-value ${edgeClass}">${data.houseEdge >= 0 ? '+' : ''}${data.houseEdge.toFixed(2)}%</div>
               <div class="stat-label">House Edge</div>
             </div>
-            <div class="stat">
+            <div class="stat" title="Return To Player: Percentage of bets returned to players over time">
               <div class="stat-value">${data.rtp.toFixed(2)}%</div>
               <div class="stat-label">RTP</div>
             </div>
-            <div class="stat">
+            <div class="stat" title="Odds of getting ANY payout (hitting enough numbers to win something)">
               <div class="stat-value">${data.winOdds}</div>
               <div class="stat-label">Win Odds</div>
             </div>
@@ -731,27 +745,31 @@
     }
 
     function renderDetailedSection(data) {
-      const edgeClass = data.houseEdge < 0 ? 'positive' : 'negative';
+      // Positive house edge = good for house = green, Negative = bad = red
+      const edgeClass = data.houseEdge >= 0 ? 'house-wins' : 'house-loses';
 
       let rowsHtml = '';
+
+      // Calculate suggested payouts for 5% house edge
+      const targetEV = 0.95; // 5% house edge means 95% return
+      const scaleFactor = data.totalEV > 0 ? targetEV / data.totalEV : 1;
 
       for (const row of data.rows) {
         // Bar width is now 0-100% absolute (probability * 100)
         const barWidth = row.probability * 100;
         const payoutClass = row.payout > 0 ? '' : 'no-payout';
-        const evClass = row.evContribution > 0 ? 'positive' : 'negative';
         const rowClass = row.payout > 0 ? '' : 'no-payout-row';
 
-        // Edge contribution: probability × (1 - payout)
-        // This is how much this row contributes to overall house edge
-        // Positive = house profit, Negative = player profit
-        // Sum of all rows = total house edge
-        let rowEdgeHtml = '—';
-        let rowEdgeClass = '';
-        if (row.payout > 0) {
-          const edgeContribution = row.probability * (1 - row.payout) * 100;
-          rowEdgeClass = edgeContribution >= 0 ? 'positive' : 'negative';
-          rowEdgeHtml = (edgeContribution >= 0 ? '+' : '') + edgeContribution.toFixed(2) + '%';
+        // % of Total Return = (prob × payout) / totalEV × 100
+        let pctReturnHtml = '—';
+        let suggestedPayoutHtml = '—';
+
+        if (row.payout > 0 && row.probability > 0) {
+          const pctReturn = (row.evContribution / data.totalEV) * 100;
+          const suggestedPayout = row.payout * scaleFactor;
+
+          pctReturnHtml = pctReturn.toFixed(1) + '%';
+          suggestedPayoutHtml = suggestedPayout.toFixed(2) + 'x';
         }
 
         rowsHtml += `
@@ -767,8 +785,8 @@
             </td>
             <td class="odds-col">${row.odds}</td>
             <td class="payout-col ${payoutClass}">${row.payout > 0 ? row.payout + 'x' : '—'}</td>
-            <td class="ev-col ${evClass}">${row.payout > 0 ? row.evContribution.toFixed(6) : '—'}</td>
-            <td class="edge-col ${rowEdgeClass}">${rowEdgeHtml}</td>
+            <td class="suggested-col">${suggestedPayoutHtml}</td>
+            <td class="pct-return-col">${pctReturnHtml}</td>
           </tr>
         `;
       }
@@ -778,19 +796,19 @@
           <div class="pick-header">
             <span class="pick-title">Pick ${data.picks} Number${data.picks > 1 ? 's' : ''}</span>
             <div class="pick-summary">
-              <div class="pick-summary-item">
+              <div class="pick-summary-item" title="Expected Value: Average return per $1 bet. Values above 1.0 mean players profit on average.">
                 <span class="pick-summary-label">EV:</span>
                 <span class="${edgeClass}">${data.totalEV.toFixed(4)}</span>
               </div>
-              <div class="pick-summary-item">
+              <div class="pick-summary-item" title="House Edge: Percentage the house keeps (positive) or loses (negative) per bet on average.">
                 <span class="pick-summary-label">House Edge:</span>
                 <span class="${edgeClass}">${data.houseEdge.toFixed(2)}%</span>
               </div>
-              <div class="pick-summary-item">
+              <div class="pick-summary-item" title="Return To Player: Percentage of bets returned to players over time. RTP = 100% - House Edge.">
                 <span class="pick-summary-label">RTP:</span>
                 <span>${data.rtp.toFixed(2)}%</span>
               </div>
-              <div class="pick-summary-item">
+              <div class="pick-summary-item" title="Maximum payout multiplier for this pick level.">
                 <span class="pick-summary-label">Max:</span>
                 <span style="color: var(--accent-gold)">${data.maxPayout}x</span>
               </div>
@@ -799,12 +817,12 @@
           <table class="odds-table">
             <thead>
               <tr>
-                <th>Hits</th>
-                <th>Probability</th>
-                <th>Odds</th>
-                <th>Payout</th>
-                <th>EV Contribution</th>
-                <th>Edge Contrib</th>
+                <th title="Number of player's picks that matched winning numbers">Hits</th>
+                <th title="Chance of this outcome occurring (hypergeometric distribution)">Probability</th>
+                <th title="Same as probability, expressed as '1 in X'">Odds</th>
+                <th title="Current payout multiplier from your CSV file">CSV Payout</th>
+                <th title="Suggested payout to achieve 5% house edge (all payouts scaled proportionally)">Target Payout (5%)</th>
+                <th title="% Return = (probability × CSV payout) / total EV × 100. Shows what portion of player returns comes from this outcome using your current CSV payouts.">% Return</th>
               </tr>
             </thead>
             <tbody>
