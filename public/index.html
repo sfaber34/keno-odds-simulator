@@ -767,9 +767,11 @@
         if (row.payout > 0 && row.probability > 0) {
           const pctReturn = (row.evContribution / data.totalEV) * 100;
           const suggestedPayout = row.payout * scaleFactor;
+          // Round DOWN to 1 decimal place to ensure house keeps edge
+          const roundedPayout = Math.floor(suggestedPayout * 10) / 10;
 
           pctReturnHtml = pctReturn.toFixed(1) + '%';
-          suggestedPayoutHtml = suggestedPayout.toFixed(2) + 'x';
+          suggestedPayoutHtml = roundedPayout.toFixed(1) + 'x';
         }
 
         rowsHtml += `
@@ -821,7 +823,7 @@
                 <th title="Chance of this outcome occurring (hypergeometric distribution)">Probability</th>
                 <th title="Same as probability, expressed as '1 in X'">Odds</th>
                 <th title="Current payout multiplier from your CSV file">CSV Payout</th>
-                <th title="Suggested payout to achieve 5% house edge (all payouts scaled proportionally)">Target Payout (5%)</th>
+                <th title="Suggested payout for 5% house edge. Scaled proportionally and rounded DOWN to 1 decimal to keep house edge.">Target Payout (5%)</th>
                 <th title="% Return = (probability × CSV payout) / total EV × 100. Shows what portion of player returns comes from this outcome using your current CSV payouts.">% Return</th>
               </tr>
             </thead>
