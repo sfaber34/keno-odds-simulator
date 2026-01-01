@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Keno Odds Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #111827;
+      --bg-card: #1a2234;
+      --bg-hover: #243049;
+      --accent-green: #10b981;
+      --accent-green-dim: #059669;
+      --accent-red: #ef4444;
+      --accent-red-dim: #dc2626;
+      --accent-gold: #f59e0b;
+      --accent-blue: #3b82f6;
+      --accent-purple: #8b5cf6;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: #2d3a4f;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding: 3rem 0;
+      background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+      border-radius: 1.5rem;
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-gold), var(--accent-purple), var(--accent-blue));
+    }
+
+    h1 {
+      font-size: 2.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      font-weight: 300;
+    }
+
+    .game-rules {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .rule-badge {
+      background: var(--bg-primary);
+      padding: 0.5rem 1.25rem;
+      border-radius: 2rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      border: 1px solid var(--border);
+    }
+
+    .rule-badge span {
+      color: var(--accent-gold);
+      font-weight: 600;
+    }
+
+    /* Summary Grid */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .summary-card {
+      background: var(--bg-card);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--accent-blue);
+      transition: width 0.2s ease;
+    }
+
+    .summary-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent-blue);
+      background: var(--bg-hover);
+    }
+
+    .summary-card:hover::before {
+      width: 6px;
+    }
+
+    .summary-card.positive::before {
+      background: var(--accent-red);
+    }
+
+    .summary-card.negative::before {
+      background: var(--accent-green);
+    }
+
+    .summary-card.positive:hover {
+      border-color: var(--accent-red);
+    }
+
+    .summary-card.negative:hover {
+      border-color: var(--accent-green);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .pick-label {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .max-payout {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      color: var(--accent-gold);
+      font-weight: 600;
+    }
+
+    .card-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .stat-value.positive {
+      color: var(--accent-red);
+    }
+
+    .stat-value.negative {
+      color: var(--accent-green);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.25rem;
+    }
+
+    /* Pick Detail Sections */
+    .pick-section {
+      background: var(--bg-card);
+      border-radius: 1rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .pick-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 1.5rem;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .pick-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .pick-summary {
+      display: flex;
+      gap: 2rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+    }
+
+    .pick-summary-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .pick-summary-label {
+      color: var(--text-muted);
+    }
+
+    /* Tables */
+    .odds-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .odds-table th {
+      text-align: left;
+      padding: 1rem 1.5rem;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .odds-table td {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+    }
+
+    .odds-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .odds-table tr:hover {
+      background: var(--bg-hover);
+    }
+
+    .odds-table tr.no-payout-row {
+      opacity: 0.45;
+    }
+
+    .odds-table tr.no-payout-row:hover {
+      opacity: 0.7;
+    }
+
+    .odds-table .hits-col {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .odds-table .prob-col {
+      color: var(--text-secondary);
+    }
+
+    .odds-table .odds-col {
+      color: var(--accent-blue);
+    }
+
+    .odds-table .payout-col {
+      color: var(--accent-gold);
+      font-weight: 600;
+    }
+
+    .odds-table .payout-col.no-payout {
+      color: var(--text-muted);
+    }
+
+    .odds-table .ev-col.positive {
+      color: var(--accent-green);
+    }
+
+    .odds-table .ev-col.negative {
+      color: var(--text-muted);
+    }
+
+    .odds-table .edge-col {
+      font-weight: 600;
+    }
+
+    .odds-table .edge-col.positive {
+      color: var(--accent-green);
+    }
+
+    .odds-table .edge-col.negative {
+      color: var(--accent-red);
+    }
+
+    /* Progress Bars */
+    .prob-bar-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .prob-bar {
+      flex: 1;
+      max-width: 120px;
+      height: 6px;
+      background: var(--bg-primary);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .prob-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    /* Nav Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .nav-tab {
+      padding: 0.75rem 1.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .nav-tab:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .nav-tab.active {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: white;
+    }
+
+    /* View Toggle */
+    .view-toggle {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+
+    .toggle-btn {
+      padding: 0.75rem 1.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+    }
+
+    .toggle-btn:first-child {
+      border-radius: 0.5rem 0 0 0.5rem;
+    }
+
+    .toggle-btn:last-child {
+      border-radius: 0 0.5rem 0.5rem 0;
+    }
+
+    .toggle-btn:hover {
+      background: var(--bg-hover);
+    }
+
+    .toggle-btn.active {
+      background: var(--accent-purple);
+      border-color: var(--accent-purple);
+      color: white;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      border-top: 1px solid var(--border);
+      margin-top: 3rem;
+    }
+
+    footer code {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg-card);
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.25rem;
+    }
+
+    /* Payout Selector */
+    .payout-selector {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .payout-selector label {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .payout-select {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.6rem 1rem;
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      cursor: pointer;
+      min-width: 200px;
+      transition: all 0.2s ease;
+    }
+
+    .payout-select:hover {
+      border-color: var(--accent-blue);
+      background: var(--bg-hover);
+    }
+
+    .payout-select:focus {
+      outline: none;
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
+
+    .payout-select option {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(10, 14, 23, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .loading-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent-purple);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .game-rules {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .pick-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+      }
+
+      .pick-summary {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem;
+      }
+
+      .odds-table th,
+      .odds-table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>🎰 Keno Odds Simulator</h1>
+      <p class="subtitle">Hypergeometric probability analysis with payout calculations</p>
+      <div class="payout-selector">
+        <label for="payout-file">Payout Table:</label>
+        <select id="payout-file" class="payout-select">
+          <option value="">Loading...</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="view-toggle">
+      <button class="toggle-btn active" data-view="summary">Summary View</button>
+      <button class="toggle-btn" data-view="detailed">Detailed View</button>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay">
+      <div class="loading-spinner"></div>
+    </div>
+
+    <div id="summary-view">
+      <div class="summary-grid" id="summary-grid"></div>
+    </div>
+
+    <div id="detailed-view" class="hidden">
+      <div class="nav-tabs" id="nav-tabs"></div>
+      <div id="pick-details"></div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Probabilities calculated using the hypergeometric distribution: <code>P(k) = C(20,k) × C(60,n-k) / C(80,n)</code>
+    </p>
+  </footer>
+
+  <script>
+    // ============================================================
+    // KENO CONSTANTS & PAYOUTS
+    // ============================================================
+    const TOTAL_NUMBERS = 80;
+    const NUMBERS_DRAWN = 20;
+    const NUMBERS_NOT_DRAWN = 60;
+
+    // Payouts loaded from server
+    let PAYOUTS = {};
+
+    // ============================================================
+    // MATH UTILITIES
+    // ============================================================
+    function factorial(n) {
+      if (n <= 1n) return 1n;
+      let result = 1n;
+      for (let i = 2n; i <= n; i++) result *= i;
+      return result;
+    }
+
+    function binomial(n, k) {
+      if (k < 0 || k > n) return 0;
+      if (k === 0 || k === n) return 1;
+      if (k > n - k) k = n - k;
+
+      const nBig = BigInt(n);
+      const kBig = BigInt(k);
+
+      let numerator = 1n;
+      for (let i = 0n; i < kBig; i++) {
+        numerator *= (nBig - i);
+      }
+      return Number(numerator / factorial(kBig));
+    }
+
+    function calculateProbability(picks, hits) {
+      if (hits > picks || hits > NUMBERS_DRAWN || (picks - hits) > NUMBERS_NOT_DRAWN) {
+        return 0;
+      }
+      const waysToHit = binomial(NUMBERS_DRAWN, hits);
+      const waysToMiss = binomial(NUMBERS_NOT_DRAWN, picks - hits);
+      const totalWays = binomial(TOTAL_NUMBERS, picks);
+      return (waysToHit * waysToMiss) / totalWays;
+    }
+
+    function formatOdds(probability) {
+      if (probability === 0) return 'impossible';
+      if (probability >= 1) return '1 in 1';
+      const odds = 1 / probability;
+      if (odds >= 1000000) return `1 in ${(odds / 1000000).toFixed(2)}M`;
+      if (odds >= 1000) return `1 in ${(odds / 1000).toFixed(2)}K`;
+      return `1 in ${odds.toFixed(2)}`;
+    }
+
+    // ============================================================
+    // DATA CALCULATION
+    // ============================================================
+    function calculatePickData(picks) {
+      const rows = [];
+      let totalEV = 0;
+      let maxPayout = 0;
+      let winProbability = 0;
+
+      for (let hits = 0; hits <= picks; hits++) {
+        const probability = calculateProbability(picks, hits);
+        const payout = PAYOUTS[picks]?.[hits] || 0;
+        const evContribution = probability * payout;
+        totalEV += evContribution;
+
+        if (payout > maxPayout) maxPayout = payout;
+        if (payout > 0) winProbability += probability;
+
+        rows.push({
+          hits,
+          probability,
+          probabilityPercent: (probability * 100).toFixed(4),
+          odds: formatOdds(probability),
+          payout,
+          evContribution
+        });
+      }
+
+      const houseEdge = (1 - totalEV) * 100;
+      const rtp = totalEV * 100;
+
+      return {
+        picks,
+        rows,
+        totalEV,
+        houseEdge,
+        rtp,
+        maxPayout,
+        winProbability,
+        winOdds: formatOdds(winProbability)
+      };
+    }
+
+    // ============================================================
+    // RENDERING
+    // ============================================================
+    function renderSummaryCard(data) {
+      const edgeClass = data.houseEdge < 0 ? 'positive' : 'negative';
+      return `
+        <div class="summary-card ${edgeClass}" data-picks="${data.picks}">
+          <div class="card-header">
+            <span class="pick-label">Pick ${data.picks}</span>
+            <span class="max-payout">${data.maxPayout}x max</span>
+          </div>
+          <div class="card-stats">
+            <div class="stat">
+              <div class="stat-value ${edgeClass}">${data.houseEdge >= 0 ? '+' : ''}${data.houseEdge.toFixed(2)}%</div>
+              <div class="stat-label">House Edge</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value">${data.rtp.toFixed(2)}%</div>
+              <div class="stat-label">RTP</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value">${data.winOdds}</div>
+              <div class="stat-label">Win Odds</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDetailedSection(data) {
+      const edgeClass = data.houseEdge < 0 ? 'positive' : 'negative';
+
+      let rowsHtml = '';
+
+      for (const row of data.rows) {
+        // Bar width is now 0-100% absolute (probability * 100)
+        const barWidth = row.probability * 100;
+        const payoutClass = row.payout > 0 ? '' : 'no-payout';
+        const evClass = row.evContribution > 0 ? 'positive' : 'negative';
+        const rowClass = row.payout > 0 ? '' : 'no-payout-row';
+
+        // Edge contribution: probability × (1 - payout)
+        // This is how much this row contributes to overall house edge
+        // Positive = house profit, Negative = player profit
+        // Sum of all rows = total house edge
+        let rowEdgeHtml = '—';
+        let rowEdgeClass = '';
+        if (row.payout > 0) {
+          const edgeContribution = row.probability * (1 - row.payout) * 100;
+          rowEdgeClass = edgeContribution >= 0 ? 'positive' : 'negative';
+          rowEdgeHtml = (edgeContribution >= 0 ? '+' : '') + edgeContribution.toFixed(2) + '%';
+        }
+
+        rowsHtml += `
+          <tr class="${rowClass}">
+            <td class="hits-col">${row.hits} hit${row.hits !== 1 ? 's' : ''}</td>
+            <td class="prob-col">
+              <div class="prob-bar-container">
+                <span>${row.probabilityPercent}%</span>
+                <div class="prob-bar">
+                  <div class="prob-bar-fill" style="width: ${barWidth}%"></div>
+                </div>
+              </div>
+            </td>
+            <td class="odds-col">${row.odds}</td>
+            <td class="payout-col ${payoutClass}">${row.payout > 0 ? row.payout + 'x' : '—'}</td>
+            <td class="ev-col ${evClass}">${row.payout > 0 ? row.evContribution.toFixed(6) : '—'}</td>
+            <td class="edge-col ${rowEdgeClass}">${rowEdgeHtml}</td>
+          </tr>
+        `;
+      }
+
+      return `
+        <div class="pick-section" id="pick-${data.picks}">
+          <div class="pick-header">
+            <span class="pick-title">Pick ${data.picks} Number${data.picks > 1 ? 's' : ''}</span>
+            <div class="pick-summary">
+              <div class="pick-summary-item">
+                <span class="pick-summary-label">EV:</span>
+                <span class="${edgeClass}">${data.totalEV.toFixed(4)}</span>
+              </div>
+              <div class="pick-summary-item">
+                <span class="pick-summary-label">House Edge:</span>
+                <span class="${edgeClass}">${data.houseEdge.toFixed(2)}%</span>
+              </div>
+              <div class="pick-summary-item">
+                <span class="pick-summary-label">RTP:</span>
+                <span>${data.rtp.toFixed(2)}%</span>
+              </div>
+              <div class="pick-summary-item">
+                <span class="pick-summary-label">Max:</span>
+                <span style="color: var(--accent-gold)">${data.maxPayout}x</span>
+              </div>
+            </div>
+          </div>
+          <table class="odds-table">
+            <thead>
+              <tr>
+                <th>Hits</th>
+                <th>Probability</th>
+                <th>Odds</th>
+                <th>Payout</th>
+                <th>EV Contribution</th>
+                <th>Edge Contrib</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // ============================================================
+    // INITIALIZATION
+    // ============================================================
+    const summaryGrid = document.getElementById('summary-grid');
+    const navTabs = document.getElementById('nav-tabs');
+    const pickDetails = document.getElementById('pick-details');
+    const payoutSelect = document.getElementById('payout-file');
+    const loadingOverlay = document.getElementById('loading-overlay');
+
+    function renderAll() {
+      const allData = [];
+      for (let picks = 1; picks <= 10; picks++) {
+        allData.push(calculatePickData(picks));
+      }
+
+      // Render summary cards
+      summaryGrid.innerHTML = allData.map(renderSummaryCard).join('');
+
+      // Render nav tabs
+      navTabs.innerHTML = allData.map((data, i) =>
+        `<button class="nav-tab ${i === 0 ? 'active' : ''}" data-picks="${data.picks}">Pick ${data.picks}</button>`
+      ).join('');
+
+      // Render detailed sections
+      pickDetails.innerHTML = allData.map((data, i) =>
+        `<div class="${i === 0 ? '' : 'hidden'}" data-detail="${data.picks}">${renderDetailedSection(data)}</div>`
+      ).join('');
+    }
+
+    async function loadPayoutFiles() {
+      try {
+        const response = await fetch('/api/payouts');
+        const files = await response.json();
+
+        payoutSelect.innerHTML = files.map((f, i) =>
+          `<option value="${f.filename}" ${i === 0 ? 'selected' : ''}>${f.name}</option>`
+        ).join('');
+
+        // Load the first file
+        if (files.length > 0) {
+          await loadPayouts(files[0].filename);
+        }
+      } catch (err) {
+        console.error('Failed to load payout files:', err);
+        payoutSelect.innerHTML = '<option value="">Error loading files</option>';
+      }
+    }
+
+    async function loadPayouts(filename) {
+      loadingOverlay.classList.add('visible');
+
+      try {
+        const response = await fetch(`/api/payouts/${encodeURIComponent(filename)}`);
+        PAYOUTS = await response.json();
+        renderAll();
+      } catch (err) {
+        console.error('Failed to load payouts:', err);
+      } finally {
+        loadingOverlay.classList.remove('visible');
+      }
+    }
+
+    // Load payout files on startup
+    loadPayoutFiles();
+
+    // Handle payout file selection
+    payoutSelect.addEventListener('change', (e) => {
+      if (e.target.value) {
+        loadPayouts(e.target.value);
+      }
+    });
+
+    // ============================================================
+    // EVENT HANDLERS
+    // ============================================================
+    // View toggle
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const view = btn.dataset.view;
+        document.getElementById('summary-view').classList.toggle('hidden', view !== 'summary');
+        document.getElementById('detailed-view').classList.toggle('hidden', view !== 'detailed');
+      });
+    });
+
+    // Nav tabs
+    navTabs.addEventListener('click', (e) => {
+      if (e.target.classList.contains('nav-tab')) {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+
+        const picks = e.target.dataset.picks;
+        document.querySelectorAll('[data-detail]').forEach(d => {
+          d.classList.toggle('hidden', d.dataset.detail !== picks);
+        });
+      }
+    });
+
+    // Summary card click -> switch to detailed view
+    summaryGrid.addEventListener('click', (e) => {
+      const card = e.target.closest('.summary-card');
+      if (card) {
+        const picks = card.dataset.picks;
+
+        // Switch to detailed view
+        document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.toggle-btn[data-view="detailed"]').classList.add('active');
+        document.getElementById('summary-view').classList.add('hidden');
+        document.getElementById('detailed-view').classList.remove('hidden');
+
+        // Activate correct tab
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.querySelector(`.nav-tab[data-picks="${picks}"]`).classList.add('active');
+        document.querySelectorAll('[data-detail]').forEach(d => {
+          d.classList.toggle('hidden', d.dataset.detail !== picks);
+        });
+      }
+    });
+  </script>
+</body>
+
+</html>
