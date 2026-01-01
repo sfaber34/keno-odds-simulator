@@ -532,6 +532,17 @@
       box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
     }
 
+    /* Hide number input spinners */
+    .target-edge-input::-webkit-outer-spin-button,
+    .target-edge-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .target-edge-input {
+      -moz-appearance: textfield;
+    }
+
     .edge-suffix {
       color: var(--text-secondary);
       font-family: 'JetBrains Mono', monospace;
@@ -620,7 +631,7 @@
         <select id="payout-file" class="payout-select">
           <option value="">Loading...</option>
         </select>
-        <label for="target-edge">Target Edge:</label>
+        <label for="target-edge">Target House Edge:</label>
         <input type="number" id="target-edge" class="target-edge-input" value="5" min="0" max="50">
         <span class="edge-suffix">%</span>
       </div>
