@@ -1,0 +1,13 @@
+{
+  "name": "keno-odds-simulator",
+  "version": "1.0.0",
+  "description": "Calculate keno odds and expected values based on payout tables",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["keno", "odds", "probability", "gambling"],
+  "license": "MIT"
+}
+
